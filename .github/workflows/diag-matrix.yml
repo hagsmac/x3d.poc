@@ -1,0 +1,84 @@
+name: Diagnose smoke matrix (throwaway)
+
+# Runs only on pushes to diag/** branches. Never deploys. Every step has a hard timeout so nothing can hang silently.
+# One job per browser configuration; each job loads all seven pages the Pages workflow smoke-tests, one fresh browser per page.
+on:
+  push:
+    branches: ['diag/**']
+
+jobs:
+  variant:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: base-131,              pw: '1.49.1', install: chromium, core0: '1', cfg: '{"args":["--no-sandbox","--use-angle=swiftshader","--enable-unsafe-swiftshader","--ignore-gpu-blocklist"]}' }
+          - { name: base-131-coredump,     pw: '1.49.1', install: chromium, core0: '0', cfg: '{"args":["--no-sandbox","--use-angle=swiftshader","--enable-unsafe-swiftshader","--ignore-gpu-blocklist"]}' }
+          - { name: pw-latest,             pw: '1.64.1', install: chromium, core0: '1', cfg: '{"args":["--no-sandbox","--use-angle=swiftshader","--enable-unsafe-swiftshader","--ignore-gpu-blocklist"]}' }
+          - { name: chrome-pw149,          pw: '1.49.1', install: none,     core0: '1', cfg: '{"channel":"chrome","args":["--no-sandbox","--use-angle=swiftshader","--enable-unsafe-swiftshader","--ignore-gpu-blocklist"]}' }
+          - { name: chrome-pwlatest,       pw: '1.64.1', install: none,     core0: '1', cfg: '{"channel":"chrome","args":["--no-sandbox","--use-angle=swiftshader","--enable-unsafe-swiftshader","--ignore-gpu-blocklist"]}' }
+          - { name: newheadless-pw149,     pw: '1.49.1', install: chromium, core0: '1', cfg: '{"channel":"chromium","args":["--no-sandbox","--use-angle=swiftshader","--enable-unsafe-swiftshader","--ignore-gpu-blocklist"]}' }
+          - { name: newheadless-pwlatest,  pw: '1.64.1', install: chromium, core0: '1', cfg: '{"channel":"chromium","args":["--no-sandbox","--use-angle=swiftshader","--enable-unsafe-swiftshader","--ignore-gpu-blocklist"]}' }
+          - { name: base-jitless,          pw: '1.49.1', install: chromium, core0: '1', cfg: '{"args":["--no-sandbox","--use-angle=swiftshader","--enable-unsafe-swiftshader","--ignore-gpu-blocklist","--js-flags=--jitless"]}' }
+          - { name: base-noopt-nomaglev,   pw: '1.49.1', install: chromium, core0: '1', cfg: '{"args":["--no-sandbox","--use-angle=swiftshader","--enable-unsafe-swiftshader","--ignore-gpu-blocklist","--js-flags=--no-opt --no-maglev"]}' }
+          - { name: base-angle-swiftshader-webgl, pw: '1.49.1', install: chromium, core0: '1', cfg: '{"args":["--no-sandbox","--use-gl=angle","--use-angle=swiftshader-webgl","--enable-unsafe-swiftshader","--ignore-gpu-blocklist"]}' }
+          - { name: base-nogpucompositing, pw: '1.49.1', install: chromium, core0: '1', cfg: '{"args":["--no-sandbox","--use-angle=swiftshader","--enable-unsafe-swiftshader","--ignore-gpu-blocklist","--disable-gpu-compositing"]}' }
+          - { name: base-mesa-egl,         pw: '1.49.1', install: chromium, core0: '1', cfg: '{"args":["--no-sandbox","--use-gl=angle","--use-angle=gl-egl","--ignore-gpu-blocklist"]}' }
+          - { name: base-in-process-gpu,   pw: '1.49.1', install: chromium, core0: '1', cfg: '{"args":["--no-sandbox","--use-angle=swiftshader","--enable-unsafe-swiftshader","--ignore-gpu-blocklist","--in-process-gpu"]}' }
+          - { name: base-no-vulkan-feat,   pw: '1.49.1', install: chromium, core0: '1', cfg: '{"args":["--no-sandbox","--use-angle=swiftshader","--enable-unsafe-swiftshader","--ignore-gpu-blocklist","--disable-features=Vulkan,DefaultANGLEVulkan,VulkanFromANGLE"]}' }
+    env:
+      CFG: ${{ matrix.cfg }}
+      CORE0: ${{ matrix.core0 }}
+      PW_VERSION: ${{ matrix.pw }}
+      PW_INSTALL: ${{ matrix.install }}
+      DEADLINE: '80'
+      DEBUG: pw:browser
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Assemble the site
+        run: timeout --kill-after=10 240 bash tools/assemble.sh site
+
+      - name: Install Playwright
+        run: |
+          timeout --kill-after=10 300 npm install --no-save --no-audit --no-fund "playwright@$PW_VERSION"
+          if [ "$PW_INSTALL" != none ]; then timeout --kill-after=10 400 npx playwright install --with-deps chromium; fi
+          echo "google-chrome: $(google-chrome --version 2>&1 | head -1)"; node -e "console.log('playwright', require('playwright/package.json').version)"
+
+      - name: Load every page
+        run: |
+          set +e
+          if [ "$CORE0" = 1 ]; then ulimit -c 0; fi
+          echo "ulimit -c = $(ulimit -c), core_pattern = $(cat /proc/sys/kernel/core_pattern)"
+          (cd site && nohup python3 -m http.server 8766 --bind 127.0.0.1 >/tmp/server.log 2>&1 &)
+          sleep 2
+          for p in index.html gobbler.html materials.html drillfield.html spec-questions.html two-renderers.html shroud/index.html; do
+            before=$(sudo dmesg | grep -c 'segfault')
+            timeout --kill-after=5 $((DEADLINE + 30)) node tools/diag_variant.js http://127.0.0.1:8766 "$p" "$DEADLINE" "$CFG" >/tmp/out.txt 2>/tmp/err.txt
+            rc=$?
+            grep '^RESULT' /tmp/out.txt || echo "RESULT {\"page\":\"$p\",\"status\":\"NO-RESULT-LINE rc=$rc\"}"
+            echo "  stderr hints: $(grep -aiE 'gpu process|exited unexpectedly|SIGSEGV|crashed|fatal|Check failed' /tmp/err.txt | cut -c1-160 | sort | uniq -c | head -4 | tr '\n' ';')"
+            pkill -9 -f 'headless_shell|ms-playwright|google-chrome|/opt/google/chrome' 2>/dev/null; sleep 1
+            after=$(sudo dmesg | grep -c 'segfault')
+            echo "  SEGV-DELTA $p $((after - before))"
+          done
+
+      - name: Kernel messages
+        if: always()
+        run: timeout --kill-after=5 20 sudo dmesg | grep -aiE 'segfault|oom|killed process' | tail -20 || true
+
+      - name: Coredump evidence (only the variant that leaves core dumping on)
+        if: always() && matrix.core0 == '0'
+        run: |
+          set +e
+          sleep 20
+          timeout --kill-after=5 60 sudo coredumpctl list --no-pager 2>&1 | tail -8
+          timeout --kill-after=5 90 sudo coredumpctl info --no-pager 2>&1 | grep -aE 'PID:|Signal:|Executable:|Command Line:|Message:|Stack trace|#[0-9] |Module ' | cut -c1-230 | head -50
+          echo "--- journal"
+          timeout --kill-after=5 60 sudo journalctl --no-pager -u 'systemd-coredump@*' 2>&1 | cut -c1-230 | tail -30
