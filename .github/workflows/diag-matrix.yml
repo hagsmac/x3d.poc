@@ -15,26 +15,24 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { name: base-131,              pw: '1.49.1', install: chromium, core0: '1', cfg: '{"args":["--no-sandbox","--use-angle=swiftshader","--enable-unsafe-swiftshader","--ignore-gpu-blocklist"]}' }
-          - { name: base-131-coredump,     pw: '1.49.1', install: chromium, core0: '0', cfg: '{"args":["--no-sandbox","--use-angle=swiftshader","--enable-unsafe-swiftshader","--ignore-gpu-blocklist"]}' }
-          - { name: pw-latest,             pw: '1.64.1', install: chromium, core0: '1', cfg: '{"args":["--no-sandbox","--use-angle=swiftshader","--enable-unsafe-swiftshader","--ignore-gpu-blocklist"]}' }
-          - { name: chrome-pw149,          pw: '1.49.1', install: none,     core0: '1', cfg: '{"channel":"chrome","args":["--no-sandbox","--use-angle=swiftshader","--enable-unsafe-swiftshader","--ignore-gpu-blocklist"]}' }
-          - { name: chrome-pwlatest,       pw: '1.64.1', install: none,     core0: '1', cfg: '{"channel":"chrome","args":["--no-sandbox","--use-angle=swiftshader","--enable-unsafe-swiftshader","--ignore-gpu-blocklist"]}' }
-          - { name: newheadless-pw149,     pw: '1.49.1', install: chromium, core0: '1', cfg: '{"channel":"chromium","args":["--no-sandbox","--use-angle=swiftshader","--enable-unsafe-swiftshader","--ignore-gpu-blocklist"]}' }
-          - { name: newheadless-pwlatest,  pw: '1.64.1', install: chromium, core0: '1', cfg: '{"channel":"chromium","args":["--no-sandbox","--use-angle=swiftshader","--enable-unsafe-swiftshader","--ignore-gpu-blocklist"]}' }
-          - { name: base-jitless,          pw: '1.49.1', install: chromium, core0: '1', cfg: '{"args":["--no-sandbox","--use-angle=swiftshader","--enable-unsafe-swiftshader","--ignore-gpu-blocklist","--js-flags=--jitless"]}' }
-          - { name: base-noopt-nomaglev,   pw: '1.49.1', install: chromium, core0: '1', cfg: '{"args":["--no-sandbox","--use-angle=swiftshader","--enable-unsafe-swiftshader","--ignore-gpu-blocklist","--js-flags=--no-opt --no-maglev"]}' }
-          - { name: base-angle-swiftshader-webgl, pw: '1.49.1', install: chromium, core0: '1', cfg: '{"args":["--no-sandbox","--use-gl=angle","--use-angle=swiftshader-webgl","--enable-unsafe-swiftshader","--ignore-gpu-blocklist"]}' }
-          - { name: base-nogpucompositing, pw: '1.49.1', install: chromium, core0: '1', cfg: '{"args":["--no-sandbox","--use-angle=swiftshader","--enable-unsafe-swiftshader","--ignore-gpu-blocklist","--disable-gpu-compositing"]}' }
-          - { name: base-mesa-egl,         pw: '1.49.1', install: chromium, core0: '1', cfg: '{"args":["--no-sandbox","--use-gl=angle","--use-angle=gl-egl","--ignore-gpu-blocklist"]}' }
-          - { name: base-in-process-gpu,   pw: '1.49.1', install: chromium, core0: '1', cfg: '{"args":["--no-sandbox","--use-angle=swiftshader","--enable-unsafe-swiftshader","--ignore-gpu-blocklist","--in-process-gpu"]}' }
-          - { name: base-no-vulkan-feat,   pw: '1.49.1', install: chromium, core0: '1', cfg: '{"args":["--no-sandbox","--use-angle=swiftshader","--enable-unsafe-swiftshader","--ignore-gpu-blocklist","--disable-features=Vulkan,DefaultANGLEVulkan,VulkanFromANGLE"]}' }
+          - { name: ps-base-131, pw: '1.49.1', install: chromium, snap: '1', core0: '1', cfg: '{"args":["--no-sandbox","--use-angle=swiftshader","--enable-unsafe-swiftshader","--ignore-gpu-blocklist"]}' }
+          - { name: js-regexp-interpret, pw: '1.49.1', install: chromium, snap: '0', core0: '1', cfg: '{"args":["--no-sandbox","--use-angle=swiftshader","--enable-unsafe-swiftshader","--ignore-gpu-blocklist","--js-flags=--regexp-interpret-all"]}' }
+          - { name: js-no-tiers, pw: '1.49.1', install: chromium, snap: '0', core0: '1', cfg: '{"args":["--no-sandbox","--use-angle=swiftshader","--enable-unsafe-swiftshader","--ignore-gpu-blocklist","--js-flags=--no-sparkplug --no-maglev --no-opt"]}' }
+          - { name: js-no-tiers-regexp, pw: '1.49.1', install: chromium, snap: '0', core0: '1', cfg: '{"args":["--no-sandbox","--use-angle=swiftshader","--enable-unsafe-swiftshader","--ignore-gpu-blocklist","--js-flags=--no-sparkplug --no-maglev --no-opt --regexp-interpret-all"]}' }
+          - { name: shell156-jitless, pw: '1.64.1', install: chromium, snap: '0', core0: '1', cfg: '{"args":["--no-sandbox","--use-angle=swiftshader","--enable-unsafe-swiftshader","--ignore-gpu-blocklist","--js-flags=--jitless"]}' }
+          - { name: newheadless-pw149-r1, pw: '1.49.1', install: chromium, snap: '0', core0: '1', cfg: '{"channel":"chromium","args":["--no-sandbox","--use-angle=swiftshader","--enable-unsafe-swiftshader","--ignore-gpu-blocklist"]}' }
+          - { name: newheadless-pw149-r2, pw: '1.49.1', install: chromium, snap: '0', core0: '1', cfg: '{"channel":"chromium","args":["--no-sandbox","--use-angle=swiftshader","--enable-unsafe-swiftshader","--ignore-gpu-blocklist"]}' }
+          - { name: newheadless-pw149-r3, pw: '1.49.1', install: chromium, snap: '0', core0: '1', cfg: '{"channel":"chromium","args":["--no-sandbox","--use-angle=swiftshader","--enable-unsafe-swiftshader","--ignore-gpu-blocklist"]}' }
+          - { name: newheadless-pw149-minflags, pw: '1.49.1', install: chromium, snap: '0', core0: '1', cfg: '{"channel":"chromium","args":["--no-sandbox"]}' }
+          - { name: chrome-pw149-r1, pw: '1.49.1', install: none, snap: '0', core0: '1', cfg: '{"channel":"chrome","args":["--no-sandbox","--use-angle=swiftshader","--enable-unsafe-swiftshader","--ignore-gpu-blocklist"]}' }
+          - { name: newheadless-pwlatest-r1, pw: '1.64.1', install: chromium, snap: '0', core0: '1', cfg: '{"channel":"chromium","args":["--no-sandbox","--use-angle=swiftshader","--enable-unsafe-swiftshader","--ignore-gpu-blocklist"]}' }
     env:
       CFG: ${{ matrix.cfg }}
       CORE0: ${{ matrix.core0 }}
       PW_VERSION: ${{ matrix.pw }}
       PW_INSTALL: ${{ matrix.install }}
       DEADLINE: '80'
+      SNAP: ${{ matrix.snap }}
       DEBUG: pw:browser
     steps:
       - uses: actions/checkout@v4
@@ -60,6 +58,15 @@ jobs:
           sleep 2
           for p in index.html gobbler.html materials.html drillfield.html spec-questions.html two-renderers.html shroud/index.html; do
             before=$(sudo dmesg | grep -c 'segfault')
+            if [ "$SNAP" = 1 ] && [ "$p" = index.html ]; then
+              ( sleep 15; echo "[snap] process table 15 s into the wedge:"
+                ps -eo pid,ppid,stat,wchan:26,etime,pcpu,args --sort=-pcpu | grep -E 'headless_shell|systemd-coredump|chrom' | grep -v grep | cut -c1-210 | head -12
+                pid=$(sudo dmesg | grep -a 'segfault' | tail -1 | sed -E 's/.*headless_shell\[([0-9]+)\].*/\1/')
+                echo "[snap] segfaulting pid=$pid"
+                ps -o pid,ppid,stat,wchan:26,etime,args -p "$pid" | cut -c1-260
+                sudo cat /proc/$pid/stack 2>&1 | head -8
+                grep -E 'State|Threads|VmRSS|VmSize' /proc/$pid/status 2>&1 ) &
+            fi
             timeout --kill-after=5 $((DEADLINE + 30)) node tools/diag_variant.js http://127.0.0.1:8766 "$p" "$DEADLINE" "$CFG" >/tmp/out.txt 2>/tmp/err.txt
             rc=$?
             grep '^RESULT' /tmp/out.txt || echo "RESULT {\"page\":\"$p\",\"status\":\"NO-RESULT-LINE rc=$rc\"}"
